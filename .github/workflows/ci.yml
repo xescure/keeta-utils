@@ -1,0 +1,31 @@
+name: ci
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, closed]
+  push:
+    branches: [main]
+  # Weekly, so main's Nix cache (evicted after 7 days unused) stays warm.
+  schedule:
+    - cron: "41 4 * * 1"
+
+# A pull request's runs share a group by number: a merged pull request's
+# "closed" run gets the base branch as its ref, and must not cancel main's push.
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  # The Makefile's check, offline in the Nix sandbox; the library ships no image.
+  # nix-image.yml's job asks for packages: write, which its caller must grant
+  # even with no images to push.
+  build:
+    if: github.event.action != 'closed'
+    permissions:
+      contents: read
+      packages: write
+    uses: xescure/ci/.github/workflows/nix-image.yml@13428d3b0c261dd457057dbf927b5f0983bb963f # main
+    with:
+      checks: check
+      images: ""
+      lockfiles: package-lock.json
