@@ -1,0 +1,44 @@
+{
+	"name": "@xescure/keeta-utils",
+	"version": "0.0.0",
+	"description": "How a Keeta program gets its keys",
+	"license": "UNLICENSED",
+	"type": "module",
+	"sideEffects": false,
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/xescure/keeta-utils.git"
+	},
+	"files": [
+		"dist",
+		"!dist/**/*.test.*",
+		"!dist/.done"
+	],
+	"exports": {
+		".": {
+			"types": "./dist/index.d.ts",
+			"default": "./dist/index.js"
+		},
+		"./identity": {
+			"types": "./dist/identity/index.d.ts",
+			"default": "./dist/identity/index.js"
+		}
+	},
+	"scripts": {
+		"tsc": "tsc",
+		"vitest": "vitest"
+	},
+	"peerDependencies": {
+		"@keetanetwork/keetanet-client": ">=0.18.7 <0.19"
+	},
+	"devDependencies": {
+		"@keetanetwork/keetanet-client": "0.18.7",
+		"@types/node": "24.19.2",
+		"typescript": "7.0.2",
+		"vite": "8.3.5",
+		"vitest": "5.0.5"
+	},
+	"engines": {
+		"node": ">=24"
+	}
+}
