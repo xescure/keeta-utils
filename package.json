@@ -1,8 +1,11 @@
 {
 	"name": "@xescure/keeta-utils",
-	"version": "0.0.0",
+	"version": "0.1.0",
 	"description": "How a Keeta program gets its keys",
 	"license": "MPL-2.0",
+	"publishConfig": {
+		"access": "public"
+	},
 	"type": "module",
 	"sideEffects": false,
 	"repository": {
