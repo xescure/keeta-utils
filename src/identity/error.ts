@@ -43,7 +43,8 @@ export type KeyConfigIssueCode =
 	| 'MISSING_KEY'
 	| 'INVALID_NETWORK'
 	| 'INVALID_CONTENT'
-	| 'READ_FAILED';
+	| 'READ_FAILED'
+	| 'NO_CREDENTIALS_DIRECTORY';
 
 export type KeyConfigErrorCode = KeyConfigIssueCode | 'INVALID_KEY_CONFIGURATION';
 

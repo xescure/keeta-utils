@@ -107,6 +107,8 @@ export function readKeyRef(text: string, registry: DriverRegistry, location: str
 	const bodyProblem = driver.checkBody(body);
 	if (bodyProblem !== undefined) {
 		issues.push(issue('INVALID_BODY', location, `${scheme}: ${bodyProblem}`, role));
+	} else if (driver.canonicalBody !== undefined) {
+		body = driver.canonicalBody(body);
 	}
 	const params = readParams([...new URLSearchParams(fragment ?? '')], driver, function(code, message) {
 		issues.push(issue(code, location, message, role));
