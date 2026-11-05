@@ -16,14 +16,14 @@ The key words MUST, MUST NOT, SHOULD and MAY are used as in RFC 2119.
 
 Every section is marked:
 
-- **[PR 1]**: implemented and tested;
+- **[implemented]**: implemented and tested;
 - **[planned]**: designed, but not in the code.
 
 A planned section MUST NOT need a change to an implemented interface. It plugs into the driver interface, the driver registry or the block union.
 
 ## Roadmap
 
-1. `file:` and `cred:` sources; the `keyring`, `list` and `optional` blocks.
+1. `file:` and `cred:` sources [done]; the `keyring`, `list` and `optional` blocks.
 2. The `gsm:` and `kms:` modules, and the `kms-wrapped` format.
 3. The `trezor:` signer.
 4. The flags and object codecs, only once a second user needs them.
@@ -33,7 +33,7 @@ A planned section MUST NOT need a change to an implemented interface. It plugs i
 A key reference ("ref") names a key without containing it.
 Refs are durable configuration: they live in environment files, unit files and deployment manifests for years.
 
-### 1.1 Syntax [PR 1]
+### 1.1 Syntax [implemented]
 
 ```
 keyref      = driver-ref / address-ref
@@ -66,14 +66,14 @@ The core owns four params. A driver MAY declare params of its own, with validato
 
 | Param | Values | Default | Accepted by |
 |---|---|---|---|
-| `format` | `seed`, `passphrase`, `public` [PR 1]; `privkey`, format drivers [planned] | `seed` | source drivers only |
+| `format` | `seed`, `passphrase`, `public` [implemented]; `privkey`, format drivers [planned] | `seed` | source drivers only |
 | `index` | decimal `0`..`4294967295`, no leading zeros | `0` | formats `seed`, `passphrase`; signer drivers that declare it |
 | `alg` | `secp256k1`, `secp256r1`, `ed25519` | `secp256k1` for source formats; none for signer drivers, whose backend decides | formats `seed`, `passphrase`; signer drivers that declare it |
 | `expect` | the `keeta_` address of a key pair, not an identifier | none | every format; signer drivers that declare it |
 
-`expect` MUST agree with `alg`, or with the default `alg` of a source format. [PR 1]
+`expect` MUST agree with `alg`, or with the default `alg` of a source format. [implemented]
 
-### 1.3 Canonical form [PR 1]
+### 1.3 Canonical form [implemented]
 
 `formatKeyRef` writes the scheme and the body as parsed. Then it writes the params present, in the order `format`, `index`, `alg`, `expect`, followed by the driver params sorted by name. The params are encoded by `URLSearchParams`.
 
@@ -82,11 +82,11 @@ A parsed ref records only the params written in it. An explicit default such as 
 - `parseKeyRef(formatKeyRef(ref))` MUST equal `ref`.
 - `formatKeyRef(parseKeyRef(text))` MUST equal `text` for every canonical `text`.
 
-### 1.4 Durability [PR 1]
+### 1.4 Durability [implemented]
 
 The syntax MUST only change additively: a new scheme, a new param or a new format. A ref valid today MUST keep its meaning. Anything unknown MUST fail at boot.
 
-### 1.5 Redaction [PR 1]
+### 1.5 Redaction [implemented]
 
 - A value that fails to parse may be a secret. No error contains it or any part of it: not its scheme, its body or its param names.
 - Errors name the variable, the role and the reason. They also list the registered schemes where that helps.
@@ -94,7 +94,7 @@ The syntax MUST only change additively: a new scheme, a new param or a new forma
 
 ## 2. Drivers
 
-### 2.1 The driver interface [PR 1]
+### 2.1 The driver interface [implemented]
 
 These interfaces are final. New drivers implement them, and the core does not change.
 
@@ -103,11 +103,12 @@ interface DriverBase {
 	scheme: string;
 	params?: ParamSchema;                       // the driver's own params
 	checkBody(body): string | undefined;        // a reason, never the body
+	canonicalBody?(body): string;               // the one spelling of a valid body
 	readsVariables?(ref): readonly string[];    // exempt from rule 11
 }
 interface SourceDriver extends DriverBase {
 	kind: 'source';
-	read(ref, { env }): Promise<Uint8Array>;    // the ref's format decides the meaning
+	read(ref, { env, readFile }): Promise<Uint8Array>; // the format decides the meaning
 }
 interface SignerDriver extends DriverBase {
 	kind: 'signer';
@@ -138,12 +139,15 @@ interface SignerCapabilities {
 
 | Scheme | Body | Bytes | Status |
 |---|---|---|---|
-| `env` | `[A-Za-z_][A-Za-z0-9_]*` | the variable's value, from the `env` given to the loader | PR 1 |
-| `file` | an absolute path with no empty, `.` or `..` segments and no trailing `/` | the file's contents | planned (roadmap 1) |
-| `cred` | a systemd credential name, `[A-Za-z0-9_][A-Za-z0-9_.-]*`, at most 255 characters | `$CREDENTIALS_DIRECTORY/NAME` | planned (roadmap 1) |
+| `env` | `[A-Za-z_][A-Za-z0-9_]*` | the variable's value, from the `env` given to the loader | implemented |
+| `file` | an absolute path with no empty, `.` or `..` segments and no trailing `/`; `///x` is accepted and written `/x` | the file's contents | implemented |
+| `cred` | a systemd credential file name, `[A-Za-z0-9_.-]+` with no leading `.` and no `..`, at most 255 characters | `$CREDENTIALS_DIRECTORY/NAME` | implemented |
 | `gsm` | `projects/p/secrets/s[/versions/v\|latest]` | the secret version's payload | planned (roadmap 2), module `./identity/gsm` |
 
 - `env` reads only from the `env` passed to the loader, and an empty variable is unset. The variable it names is exempt from rule 11.
+- `file:` covers Docker and Kubernetes secrets and the `_FILE` convention. `cred:` reads the files of systemd's `LoadCredential=`; it declares `CREDENTIALS_DIRECTORY` as read. When that variable is unset or empty it fails with `NO_CREDENTIALS_DIRECTORY`, and never falls back to another path.
+- A missing, unreadable or empty file is `READ_FAILED`, naming the ref and the path, never the content.
+- Files are read through `DriverContext.readFile`, `node:fs/promises` unless `loadKeys` is given another.
 - The library never reads `process.env` implicitly.
 
 ### 2.3 Signer drivers [planned]
@@ -169,9 +173,9 @@ Adding format drivers adds `format` values to 1.2. The driver union gains a `for
 
 - A driver that needs an optional package (`@google-cloud/secret-manager`, `@google-cloud/kms`) MUST live in its own subpath module.
 - That module MUST import the package type-only and take the client from the caller.
-- The root module MUST NOT resolve any optional package. [PR 1 holds this trivially: it has no optional package.]
+- The root module MUST NOT resolve any optional package. [Holds trivially: there is no optional package yet.]
 
-### 2.6 Content checks [PR 1]
+### 2.6 Content checks [implemented]
 
 These checks run on the bytes read from a source, after trimming:
 
@@ -183,7 +187,7 @@ Upstream also rejects a passphrase shorter than 60 bytes after its own processin
 
 ## 3. Schemas
 
-### 3.1 Blocks [PR 1]
+### 3.1 Blocks [implemented]
 
 The block union is `network() | publicAccount() | signer(...) | actor(...)`. A program combines blocks in `defineKeys({...}, { prefixes? })`.
 
@@ -195,7 +199,7 @@ The block union is `network() | publicAccount() | signer(...) | actor(...)`. A p
 | `actor({ signer, account?, feePayer? })` | `{ signer, account, network, feePayer? }` | see 3.2 |
 
 - `signer()` defaults to `purposes: ['block']`, `interactive: 'forbid'` and every algorithm, the strict choice for an unattended service.
-- Every top-level role is required in PR 1.
+- Every top-level role is required until `optional` arrives.
 - `loadKeys(spec, { env, drivers })` returns `Promise<Loaded<typeof spec>>`, a type derived from the spec.
 - `defineKeys` MUST throw on any of these:
   - a role name that is not camelCase;
@@ -209,7 +213,7 @@ Planned for roadmap 1:
 - `list(block)` is comma-separated in the environment;
 - `optional(block)`.
 
-### 3.2 Actors [PR 1]
+### 3.2 Actors [implemented]
 
 | Option | Block | Variable | Meaning |
 |---|---|---|---|
@@ -228,13 +232,13 @@ The fee payer resolves to `FeePayer { signer, account }`. When neither variable 
 
 `createFeeBlockGenerator(feePayer, userClient)` returns upstream's `generateFeeBlock`. It calls `userClient.initBuilder(options).computeFeeBlock(staple, { account, signer })`, which is upstream's own default with the fee payer substituted.
 
-### 3.3 The network of a signer [PR 1]
+### 3.3 The network of a signer [implemented]
 
 - A signer in an actor is on the actor's network.
 - A signer outside an actor is on the spec's single top-level `network()` role, if there is exactly one.
 - Otherwise, or when the network value is invalid, the network is unknown, and the rules for `main` apply.
 
-## 4. Fail-closed rules [PR 1]
+## 4. Fail-closed rules [implemented]
 
 All static rules run before any secret is read, and all their issues are reported at once in one `KeyConfigError`. Load-time issues are then reported at once too.
 
@@ -252,7 +256,7 @@ All static rules run before any secret is read, and all their issues are reporte
    - a key that differs from its `expect` is an error [`EXPECT_MISMATCH`], which names the variable, the role and the derived public key;
    - a signer that loads an account that cannot sign [`SIGNER_REQUIRED`] is an error;
    - so is a signer that loads a key of a disallowed algorithm [`ALGORITHM_UNSUPPORTED`].
-9. Bad content [`INVALID_CONTENT`] and a failed read [`READ_FAILED`] are errors.
+9. Bad content [`INVALID_CONTENT`], a failed read [`READ_FAILED`] and a missing credentials directory [`NO_CREDENTIALS_DIRECTORY`] are errors.
 10. An empty string is unset.
 11. A set variable under a declared prefix is an error [`UNKNOWN_VARIABLE`] unless a role or a ref reads it. That catches typos. "Under a prefix" means `PREFIX_*`, or the bare prefix of an actor.
 12. Further errors:
@@ -270,7 +274,7 @@ All static rules run before any secret is read, and all their issues are reporte
 
 ## 5. Codecs
 
-### 5.1 Environment [PR 1]
+### 5.1 Environment [implemented]
 
 - A role's prefix is its name in SCREAMING_SNAKE_CASE, with abbreviations kept whole:
   - `feeRecipients` becomes `FEE_RECIPIENTS`;
@@ -302,11 +306,11 @@ All static rules run before any secret is read, and all their issues are reporte
 
 Each layer is usable on its own.
 
-1. Drivers [PR 1]: the interfaces, `createDriverRegistry` and `environmentSource`.
+1. Drivers [implemented]: the interfaces, `createDriverRegistry`, `environmentSource`, `fileSource` and `credentialSource`.
 2. Single keys:
-   - `parseKeyRef` and `formatKeyRef` [PR 1];
+   - `parseKeyRef` and `formatKeyRef` [implemented];
    - `loadSigner`, `loadPublic` and `loadKeyring` [planned]. Each will check the static rules before it reads anything, and `loadSigner` with no network will apply the rules for `main`.
-3. Schemas [PR 1]:
+3. Schemas [implemented]:
    - the blocks and `defineKeys`;
    - the environment codec;
    - `loadKeys`;
@@ -314,7 +318,7 @@ Each layer is usable on its own.
 
    `describeKeys` (refs and public keys only) is [planned].
 
-Subpath exports: `.` and `./identity` [PR 1]. `./identity/gsm`, `./identity/kms` and `./identity/trezor` arrive with their drivers.
+Subpath exports: `.` and `./identity` [implemented]. `./identity/gsm`, `./identity/kms` and `./identity/trezor` arrive with their drivers.
 
 ## 7. Out of scope
 
@@ -366,10 +370,11 @@ More refs:
 
 | Ref | Meaning | Status |
 |---|---|---|
-| `env:ANCHOR_SEED` | a secp256k1 key at index 0 of the seed in `$ANCHOR_SEED` | PR 1 |
-| `env:COLD#format=passphrase&alg=ed25519&expect=keeta_...` | an Ed25519 key from a passphrase | PR 1 |
-| `env:TREASURY_ADDRESS#format=public` | an address held in a variable | PR 1 |
-| `cred:anchor#expect=keeta_...` | a seed in a systemd credential | planned |
+| `env:ANCHOR_SEED` | a secp256k1 key at index 0 of the seed in `$ANCHOR_SEED` | implemented |
+| `env:COLD#format=passphrase&alg=ed25519&expect=keeta_...` | an Ed25519 key from a passphrase | implemented |
+| `env:TREASURY_ADDRESS#format=public` | an address held in a variable | implemented |
+| `cred:anchor#expect=keeta_...` | a seed in a systemd credential | implemented |
+| `file:/run/secrets/anchor#format=passphrase` | a passphrase in a mounted secret | implemented |
 | `kms:projects/p/locations/l/keyRings/r/cryptoKeys/k/cryptoKeyVersions/1#expect=keeta_...` | a GCP KMS key | planned |
 | `gsm:projects/p/secrets/s/versions/3#format=kms-wrapped&expect=keeta_...` | a KMS-wrapped seed in Secret Manager | planned |
 | `trezor:#index=2&expect=keeta_...` | a Trezor key that signs blocks after confirmation on the device | planned |

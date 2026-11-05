@@ -4,6 +4,7 @@ export { assertNever } from './assert-never.js';
 export { createDriverRegistry, defaultIndex, defaultKeyAlgorithm, defaultKeyFormat, formatParams, keyFormats, localCapabilities, purposes } from './drivers.js';
 export type { Driver, DriverContext, DriverRegistry, Environment, KeyFormat, KeyParamName, ParamSchema, ParamValidator, Purpose, SignerCapabilities, SignerDriver, SourceDriver } from './drivers.js';
 export { environmentSource } from './env.js';
+export { credentialSource, fileSource } from './files.js';
 export { decodeEnvironment, encodeEnvironment } from './environment.js';
 export { KeyConfigError, TypedError } from './error.js';
 export type { KeyConfigErrorCode, KeyConfigIssue, KeyConfigIssueCode } from './error.js';

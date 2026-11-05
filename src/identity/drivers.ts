@@ -26,6 +26,7 @@ export type Environment = Readonly<Record<string, string | undefined>>;
 
 export interface DriverContext {
 	readonly env: Environment;
+	readFile(path: string): Promise<Uint8Array>;
 }
 
 /**
@@ -53,6 +54,10 @@ interface DriverBase {
 	 * never includes the body.
 	 */
 	checkBody(body: string): string | undefined;
+	/**
+	 * The one spelling of a valid body, when the driver accepts several.
+	 */
+	canonicalBody?(body: string): string;
 	/**
 	 * The environment variables the ref reads, which are therefore not
 	 * unknown variables.

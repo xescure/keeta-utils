@@ -1,3 +1,4 @@
+import { readFile } from 'node:fs/promises';
 import * as KeetaNet from '@keetanetwork/keetanet-client';
 import type { UserClient } from '@keetanetwork/keetanet-client';
 import type { UserClientBuilder } from '@keetanetwork/keetanet-client/client/builder.js';
@@ -18,6 +19,10 @@ import type { FeePayer, KeySpec, Loaded } from './schema.js';
 export interface LoadKeysOptions {
 	readonly env: Environment;
 	readonly drivers: readonly Driver[];
+	/**
+	 * How file-based sources read; `node:fs/promises` by default.
+	 */
+	readonly readFile?: DriverContext['readFile'];
 }
 
 /**
@@ -33,7 +38,7 @@ export async function loadKeys<S extends KeySpec>(spec: S, options: LoadKeysOpti
 	const accounts = new Map<string, GenericAccount>();
 	const signers = new Map<string, Account>();
 	for (const slot of analysis.slots) {
-		const account = await loadSlot(slot, registry, { env: options.env }, issues);
+		const account = await loadSlot(slot, registry, { env: options.env, readFile: options.readFile ?? readFile }, issues);
 		if (account === undefined) {
 			continue;
 		}
