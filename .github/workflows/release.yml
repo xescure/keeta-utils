@@ -21,18 +21,15 @@ jobs:
         with:
           ref: ${{ steps.release.outputs.commit }}
           persist-credentials: false
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        with:
-          node-version: "24"
-          registry-url: https://registry.npmjs.org
+      - uses: cachix/install-nix-action@75c75c31ebece974e48ebc36b4ad125bd97bd97b # v31.11.3
       - run: |
-          version=$(jq -r .version package.json)
+          version=$(nix develop -c jq -r .version package.json)
           if [ "v$version" != "$GITHUB_REF_NAME" ]; then
             echo "::error::$GITHUB_REF_NAME does not match package.json's version $version" >&2
             exit 1
           fi
-      - run: make -j build
-      - run: npm publish --provenance
+      - run: nix develop -c make -j build
+      - run: nix develop -c npm publish --provenance
       - uses: xescure/ci/.github/actions/prod-branch@13428d3b0c261dd457057dbf927b5f0983bb963f # main
         with:
           commit: ${{ steps.release.outputs.commit }}
