@@ -10,7 +10,8 @@ jobs:
     permissions:
       contents: write
       actions: read
-      # npm trusted publishing: the job's OIDC token is the only credential.
+      # npm trusted publishing: the job's OIDC token is the only credential. Releases are
+      # staged; a maintainer approves them on npmjs.com with 2FA.
       id-token: write
     steps:
       - id: release
@@ -29,7 +30,7 @@ jobs:
             exit 1
           fi
       - run: nix develop -c make -j build
-      - run: nix develop -c npm publish --provenance
+      - run: nix develop -c npm stage publish --provenance
       - uses: xescure/ci/.github/actions/prod-branch@13428d3b0c261dd457057dbf927b5f0983bb963f # main
         with:
           commit: ${{ steps.release.outputs.commit }}
