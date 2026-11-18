@@ -32,10 +32,10 @@
 		"vitest": "vitest"
 	},
 	"peerDependencies": {
-		"@keetanetwork/keetanet-client": ">=0.18.7 <0.19"
+		"@keetanetwork/keetanet-client": "0.18.7"
 	},
 	"devDependencies": {
-		"@keetanetwork/keetanet-client": "0.18.7",
+		"@keetanetwork/keetanet-client": "0.19.1",
 		"@types/node": "24.19.2",
 		"typescript": "7.0.2",
 		"vite": "8.3.5",
