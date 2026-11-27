@@ -15,7 +15,7 @@ jobs:
       id-token: write
     steps:
       - id: release
-        uses: xescure/ci/.github/actions/release-images@13428d3b0c261dd457057dbf927b5f0983bb963f # main
+        uses: xescure/ci/.github/actions/release-images@46ffbe58a9ec84e7f189fdc246edac6f53d450b0 # main
         with:
           test-job: ""
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -31,6 +31,6 @@ jobs:
           fi
       - run: nix develop -c make -j build
       - run: nix develop -c npm stage publish --provenance
-      - uses: xescure/ci/.github/actions/prod-branch@13428d3b0c261dd457057dbf927b5f0983bb963f # main
+      - uses: xescure/ci/.github/actions/prod-branch@46ffbe58a9ec84e7f189fdc246edac6f53d450b0 # main
         with:
           commit: ${{ steps.release.outputs.commit }}

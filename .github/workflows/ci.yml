@@ -24,7 +24,7 @@ jobs:
     permissions:
       contents: read
       packages: write
-    uses: xescure/ci/.github/workflows/nix-image.yml@13428d3b0c261dd457057dbf927b5f0983bb963f # main
+    uses: xescure/ci/.github/workflows/nix-image.yml@46ffbe58a9ec84e7f189fdc246edac6f53d450b0 # main
     with:
       checks: check
       images: ""
